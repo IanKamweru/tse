@@ -5,7 +5,7 @@
  * Created: Tue Jan 31 23:57:45 2023 (-0500)
  * Version: 1.0
  * 
- * Description: programs that crawls websites and collects embedded site in the website 
+ * Description: programs that crawls websites and collects embedded urls for webpages in the website 
  * 
  */
 #include <stdio.h>
