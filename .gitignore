@@ -1,8 +1,6 @@
 # object files and libraries
 *.o
-!tqueue.o
-!thash.o
-!tutils.o
+crawler
 
 # save files
 *~
@@ -17,8 +15,6 @@
 
 # test binaries
 **/*test
-thash
-tqueue
 
 # log files
 *.log

@@ -1,11 +1,11 @@
-/* crawler.c --- crawler searching urls on a site
+/* crawler.c --- web crawler
  * 
  * 
  * Authors: Abdibaset Bare, Ian Kamweru and Nathaniel Mensah
  * Created: Tue Jan 31 23:57:45 2023 (-0500)
  * Version: 1.0
  * 
- * Description: programs that crawls websites and collects embedded urls for webpages in the website 
+ * Description: crawls a website and extracts embedded urls for its webpages
  * 
  */
 #include <stdio.h>
