@@ -1,0 +1,25 @@
+# object files and libraries
+*.o
+*.a
+!tqueue.o
+!thash.o
+!tutils.o
+
+# save files
+*~
+\#*\#
+.\#*
+
+# debugging symbols
+*.dSYM
+
+# local backups
+.backup
+
+# test binaries
+**/*test
+thash
+tqueue
+
+# log files
+*.log
