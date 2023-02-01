@@ -1,10 +1,18 @@
 CFLAGS=-Wall -pedantic -std=c11 -I. -g
+OFILES=queue.o hash.o webpage.o 
 
-all:	        queue_test hash_test
+all:	        $(OFILES)
+				ar cr ../lib/libutils.a $(OFILES)
 
 %.o:			%.c %.h
 				gcc $(CFLAGS) -c $<
 
+webpage.o:		webpage.c webpage.h
+				gcc $(CFLAGS) -c webpage.c
+
+webpage:		webpage.o queue.o hash.o 
+				gcc $(OFILES) webpage.o queue.o hash.o -o $@
+				
 queue_test.o:	queue_test.c queue.h
 				gcc $(CFLAGS) -c queue_test.c
 

@@ -1,6 +1,5 @@
 # object files and libraries
 *.o
-*.a
 !tqueue.o
 !thash.o
 !tutils.o
