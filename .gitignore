@@ -13,8 +13,5 @@ crawler
 # local backups
 .backup
 
-# test binaries
-**/*test
-
 # log files
 *.log
