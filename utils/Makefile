@@ -6,3 +6,6 @@ all:	        $(OFILES)
 
 %.o:			%.c %.h
 				gcc $(CFLAGS) -c $<
+
+clean: 
+				rm -f *.o

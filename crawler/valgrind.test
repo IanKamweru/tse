@@ -15,7 +15,7 @@ for f in "${@:1}" ; do
         exit 1
     fi
 
-    bash valgrind --leak-check=full --error-exitcode=1 ${f} 2>&1 | tee valgrind.log > /dev/null
+    bash valgrind --leak-check=full --error-exitcode=1 ${f} 2>&1 | tee valgrind.log
     status=$?
     grep "no leaks" valgrind.log > /dev/null
     leaks=$?
