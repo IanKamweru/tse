@@ -1,9 +1,6 @@
 # object files and libraries
 *.o
-*.a
-!tqueue.o
-!thash.o
-!tutils.o
+crawler
 
 # save files
 *~
@@ -15,11 +12,6 @@
 
 # local backups
 .backup
-
-# test binaries
-**/*test
-thash
-tqueue
 
 # log files
 *.log
