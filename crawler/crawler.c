@@ -66,13 +66,14 @@ int main(void){
                 hput(hp,url,url,strlen(url));
             }
             else{
-                printf("url already in queue");
+                printf("[url: %s already in queue]\n",url);
+                free(url);
             }
         }
         else{
             printf("[external]\n");
+            free(url);
         }
-        free(url);
     }
 
     /* print queue */
@@ -85,6 +86,7 @@ int main(void){
     }
 
     qclose(qp);
+    hclose(hp);
     webpage_delete(homepage);
     exit(EXIT_SUCCESS);
 }
