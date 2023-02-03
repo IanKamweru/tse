@@ -10,8 +10,17 @@
  */
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "webpage.h"
 #include "queue.h"
+#include "hash.h"
+
+#define hsize 100    //declaring hashtable size
+
+static bool searchfn(void* elementp, const void* searchkeyp){
+    char *p = (char*)elementp;
+    return strcmp(p,(char*)searchkeyp) == 0;
+}
 
 int main(void){
 
@@ -32,6 +41,7 @@ int main(void){
     }
     
     queue_t *qp = qopen();
+    hashtable_t *hp = hopen(hsize);
     webpage_t *page;
     char *url;
     int pos = 0;
@@ -41,20 +51,29 @@ int main(void){
         printf("Found url: %s ", url);
         if(IsInternalURL(url)) {
             printf("[internal]\n");
+            
+            if (hsearch(hp, searchfn, url, strlen(url)) == NULL){
+                if(!(page=webpage_new(url,0,NULL))) {
+                    printf("Error! Failed to initialize internal webpage.");
+                    exit(EXIT_FAILURE);
+                }
 
-            if(!(page=webpage_new(url,0,NULL))) {
-                printf("Error! Failed to initialize internal webpage.");
-                exit(EXIT_FAILURE);
+                if(!webpage_fetch(page)) {
+                    printf("Error! Failed to fetch html from internal page.");
+                    exit(EXIT_FAILURE);
+                }
+                qput(qp, page);
+                hput(hp,url,url,strlen(url));
             }
-            if(!webpage_fetch(page)) {
-                printf("Error! Failed to fetch html from internal page.");
-                exit(EXIT_FAILURE);
+            else{
+                printf("[url: %s already in queue]\n",url);
+                free(url);
             }
-            qput(qp, page);
         }
-        else
+        else{
             printf("[external]\n");
-        free(url);
+            free(url);
+        }
     }
 
     /* print queue */
@@ -67,6 +86,7 @@ int main(void){
     }
 
     qclose(qp);
+    hclose(hp);
     webpage_delete(homepage);
     exit(EXIT_SUCCESS);
 }
