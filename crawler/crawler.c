@@ -17,7 +17,7 @@
 
 #define hsize 100    //declaring hashtable size
 
-bool searchfn(void* elementp, const void* searchkeyp){
+static bool searchfn(void* elementp, const void* searchkeyp){
     char *p = (char*)elementp;
     return strcmp(p,(char*)searchkeyp) == 0;
 }
