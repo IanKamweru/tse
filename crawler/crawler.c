@@ -22,7 +22,7 @@
 /*write the html files into dir pages
 * page - webpage_t 
 * id - filename
-* dirname - directory
+* dirname - save directory
 */
 int32_t pagesave(webpage_t *page, int id, char *dirname){
     if(!page || !dirname)
@@ -49,6 +49,7 @@ int32_t pagesave(webpage_t *page, int id, char *dirname){
     fclose(file);
     return 0;
 }
+
 static bool searchfn(void* elementp, const void* searchkeyp){
     char *p = (char*)elementp;
     return strcmp(p,(char*)searchkeyp) == 0;
