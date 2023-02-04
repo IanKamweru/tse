@@ -20,34 +20,34 @@
 #define hsize 100    //declaring hashtable size
 
 /*write the html files into dir pages
-*page - webpage_t 
-*id - pos
-*dirname - "../pages/"
+* page - webpage_t 
+* id - filename
+* dirname - directory
 */
 int32_t pagesave(webpage_t *page, int id, char *dirname){
-   char path[100];
-   int depth = webpage_getDepth(page);
-   char *html_content = webpage_getHTML(page);
-   char *url = webpage_getURL(page);
-   int html_len = webpage_getHTMLlen(page);
+    if(!page || !dirname)
+        return -1;
+    char *url = webpage_getURL(page);
+    int depth = webpage_getDepth(page);
+    int len = webpage_getHTMLlen(page);
+    char *html_content = webpage_getHTML(page);
 
-    /*generate a new file and path*/
-   sprintf(path, "%s%d.html",dirname, id);
-  
-    /*generate new file*/
-   FILE *new_file = fopen(path, "a");
-   if (new_file == NULL || access(path, W_OK) != 0){
-    printf("File not writable\n");
-    return 1;
-   }
-   
-   /*write into the file*/
-   fprintf(new_file, "%s\n", url);
-   fprintf(new_file, "%d\n", depth);
-   fprintf(new_file, "%d\n",html_len);
-   fprintf(new_file, "%s\n", html_content);
-   fclose(new_file);
-   return 0;
+    /* generate path */
+    char path[1024];
+    sprintf(path, "%s/%d",dirname, id);
+    
+    /* open file */
+    FILE *file = fopen(path, "w");
+    if (file == NULL || access(path, W_OK) != 0){
+        printf("Failed to create file for url: %s\n",url);
+        return 1;
+    }
+    
+    /* write into the file */
+    fprintf(file, "%s\n%d\n%d\n%s", url, depth, len, html_content);
+
+    fclose(file);
+    return 0;
 }
 static bool searchfn(void* elementp, const void* searchkeyp){
     char *p = (char*)elementp;
@@ -72,24 +72,24 @@ int main(void){
         exit(EXIT_FAILURE);
     }
     
-    queue_t *qp = qopen();
-    hashtable_t *hp = hopen(hsize);
-    webpage_t *page;
-    char dirname[20];
-    struct stat dir; 
-    char *url;
-    int pos = 0;
-    int32_t status;
-
-    strcpy(dirname, "../pages/");
-    /*create new directory*/
-    if (stat(dirname, &dir) == -1 && !S_ISDIR(dir.st_mode)){
-        if ((mkdir(dirname, 0777))!= 0){
-            printf("Failed to create directory\n");
+    char *dirname = "../pages/";
+    struct stat st; 
+ 
+    /* check save directory */
+    if (stat(dirname, &st) != 0 || !S_ISDIR(st.st_mode)){
+        if ((mkdir(dirname, 0755))!= 0){
+            printf("Failed to create save directory: %s\n", dirname);
             exit(EXIT_FAILURE);
         }
     }
     
+    queue_t *qp = qopen();
+    hashtable_t *hp = hopen(hsize);
+    webpage_t *page;
+    
+    char *url;
+    int pos = 0, id = 1;
+    int32_t status;
 
     /* scan page and retrieve all urls */
     while ((pos = webpage_getNextURL(homepage, pos, &url)) > 0) {
@@ -109,10 +109,12 @@ int main(void){
                 }
                 qput(qp, page);
                 hput(hp,url,url,strlen(url));
-                status = pagesave(page, pos, dirname);
-                if (status==1){
+                /* save page */
+                status = pagesave(page, id, dirname);
+                if (status!=0){
                     exit(EXIT_FAILURE);
                 }
+                id++;
             }
             else{
                 printf("[url: %s already in queue]\n",url);
