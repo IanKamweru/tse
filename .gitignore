@@ -1,6 +1,7 @@
 # object files and libraries
 *.o
 crawler
+pageio_test
 
 # save files
 *~
