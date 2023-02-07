@@ -125,7 +125,9 @@ int main(int argc, char *argv[]){
 
                     if(!webpage_fetch(page)) {
                         printf("Error! Failed to fetch html from internal page.");
-                        exit(EXIT_FAILURE);
+                        free(url);
+                        webpage_delete(page);
+                        continue;
                     }
                     qput(qp, page);
                     hput(hp,url,url,strlen(url));
