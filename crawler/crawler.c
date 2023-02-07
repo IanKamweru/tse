@@ -16,37 +16,9 @@
 #include "webpage.h"
 #include "queue.h"
 #include "hash.h"
+#include "pageio.h"
 
 #define hsize 100    // hashtable size
-
-/*write the html files into dir pages
-* page - webpage_t 
-* id - filename
-* dirname - save directory
-*/
-int32_t pagesave(webpage_t *page, int id, char *dirname){
-    char *url = webpage_getURL(page);
-    int depth = webpage_getDepth(page);
-    int len = webpage_getHTMLlen(page);
-    char *html_content = webpage_getHTML(page);
-
-    /* generate path */
-    char path[1024];
-    sprintf(path, "%s/%d",dirname, id);
-    
-    /* open file */
-    FILE *file = fopen(path, "w");
-    if (file == NULL || access(path, W_OK) != 0){
-        printf("Failed to create file for url: %s\n",url);
-        return 1;
-    }
-    
-    /* write into the file */
-    fprintf(file, "%s\n%d\n%d\n%s", url, depth, len, html_content);
-
-    fclose(file);
-    return 0;
-}
 
 static bool searchfn(void* elementp, const void* searchkeyp){
     char *p = (char*)elementp;
@@ -147,6 +119,7 @@ int main(int argc, char *argv[]){
             }
         }
         webpage_delete(curr);
+        free(url);
     }
 
     /* print queue 
@@ -162,3 +135,10 @@ int main(int argc, char *argv[]){
     qclose(qp);
     exit(EXIT_SUCCESS);
 }
+
+/*
+* 0 - 1
+* 1 - 7
+* 2 - 42
+* 3 - 82
+*/
