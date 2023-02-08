@@ -119,17 +119,7 @@ int main(int argc, char *argv[]){
             }
         }
         webpage_delete(curr);
-        free(url);
     }
-
-    /* print queue 
-    printf("******************\n\n");
-    printf("Internal Page Queue:\n");
-    page = qget(qp);
-    for(; page!=NULL; page=qget(qp)){
-        printf("%s\n",webpage_getURL(page));
-        webpage_delete(page);
-    }*/
 
     hclose(hp);
     qclose(qp);
