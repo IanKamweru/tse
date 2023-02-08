@@ -36,7 +36,7 @@ int main(void){
         return 1;
     if(webpage_getHTMLlen(page) != webpage_getHTMLlen(page_copy))
         return 1;
-    if(strcmp(webpage_getHTML(page), webpage_getHTML(page_copy)) != 0)
+    if(strcmp(webpage_getURL(page), webpage_getURL(page_copy)) != 0)
         return 1;
     if(strcmp(webpage_getHTML(page),webpage_getHTML(page_copy)) != 0)
         return 1;
