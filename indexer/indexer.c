@@ -51,7 +51,7 @@ static bool searchfn(void *elementp, const void *searchkeyp){
     return strcmp(ep->word,(char*)searchkeyp) == 0;
 }
 
-static void fn(void* ep){
+static void sum_fn(void* ep){
 	entry_p *p = (entry_p*)ep;
 	total_count += p->count;
 }
@@ -104,7 +104,7 @@ int main(void){
 		}
 	}
 
-	happly(index, fn);
+	happly(index, sum_fn);
 	printf("Total word count in hashtable: %d\n", total_count);
 	return 0;
 }
