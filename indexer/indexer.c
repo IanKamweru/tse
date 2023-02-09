@@ -19,47 +19,44 @@
 
 #define hsize 1000    // hashtable size
 
+static int total_count = 0;
 
-typedef struct index{
+/* index entry struct */
+typedef struct entry{
 	char *word;
 	int count;
-}index_p;
+}entry_p;
 
-index_p *new_index(char *word, int count){
-	if (count < 0 || word == NULL){
+/* allocate entry */
+entry_p *new_entry(char *word, int count){
+	if (count < 0 || word == NULL)
 		return NULL;
-	}
 
-	index_p *index = malloc(sizeof(index_p));
-	if (index == NULL){
+	entry_p *entry = malloc(sizeof(entry_p));
+	if (!entry)
 		return NULL;
-	}
 
-	index->word = malloc(strlen(word)+1);
-	if (index->word == NULL){
+	entry->word = malloc(strlen(word)+1);
+	if (entry->word == NULL)
 		return NULL;
-	}
 
-	strcpy(index->word, word);
-	index->count = count;
+	strcpy(entry->word, word);
+	entry->count = count;
 	
-	return index;
+	return entry;
 }
 
-static bool searchfn(void* elementp, const void* searchkeyp){
-    index_p *p = (index_p*)elementp;
-    return strcmp(p->word,(char*)searchkeyp) == 0;
+static bool searchfn(void *elementp, const void *searchkeyp){
+    entry_p *ep = (entry_p*)elementp;
+    return strcmp(ep->word,(char*)searchkeyp) == 0;
 }
 
-int* count;
-
-void fn(void* ep){
-	index_p *p = (index_p*)ep;
-	*count += p->count;
+static void fn(void* ep){
+	entry_p *p = (entry_p*)ep;
+	total_count += p->count;
 }
 
-
-void NormalizeWord(char *word){
+static void NormalizeWord(char *word){
 	if(!word)
 		return;
 	
@@ -89,24 +86,26 @@ int main(void){
 
 	int pos = 0;
 	char *word;
-	index_p *ip;
-	hashtable_t *hp = hopen(hsize);
+	entry_p *ep;
+	hashtable_t *index = hopen(hsize);
+
 	while((pos=webpage_getNextWord(page,pos,&word)) > 0){
 		NormalizeWord(word);
 		if(word[0]!='\0'){
-			if (hsearch(hp, searchfn, word,strlen(word)) != NULL){
-				ip = (index_p*)hsearch(hp, searchfn, word, strlen(word));
-				ip->count = ip->count + 1;
+			if (hsearch(index, searchfn, word, strlen(word))){
+				ep = (entry_p*)hsearch(index, searchfn, word, strlen(word));
+				ep->count = ep->count + 1;
 			}
 			else{
-				ip = new_index(word, 1);
-				hput(hp, ip, word, strlen(word));
+				ep = new_entry(word, 1);
+				hput(index, ep, word, strlen(word));
 			}
 			printf("%s\n",word);
 		}
 	}
-	happly(hp, fn);
-	printf("Total word count in hashtable: %d", *count);
+
+	happly(index, fn);
+	printf("Total word count in hashtable: %d\n", total_count);
 	return 0;
 }
 
