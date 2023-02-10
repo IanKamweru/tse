@@ -18,11 +18,12 @@
 #include "pageio.h"
 #include "hash.h"
 #include "queue.h"
+#include "webpage.h"
 
 #define hsize 1000   // hashtable size
 
-static int total_count = 0;
-static int count_allDir = 0;
+// static int total_countc
+static int count_allwords = 0;
 /* index entry struct */
 typedef struct entry{
 	queue_t *docs;
@@ -71,14 +72,21 @@ static bool searchfn(void *elementp, const void *searchkeyp){
     return strcmp(ep->word,(char*)searchkeyp) == 0;
 }
 
+
+// static void close_queue(void* elementp){
+// 	entry_p *ep =(entry_p*)elementp;
+// 	qclose(ep->docs);
+// }
+
+
 // static void sum_fn(void* ep){
 	// entry_p *p = (entry_p*)ep;
 	// total_count += p->count;
 // }
 
 static void sum_all(void* ep){
-	printf("%d ", (int)ep);
-	count_allDir = count_allDir + 1;
+	printf("%d ", *(int*)ep);
+	count_allwords = count_allwords + 1;
 }
 
 static void sum_fn_AllDir(void* ep){
@@ -113,7 +121,6 @@ static void NormalizeWord(char *word){
 int main(void){
 	char *dirname = "../pages";
 	DIR *dir;
-
 	struct dirent *entry;	
 	hashtable_t *allWords = hopen(hsize);
 	
@@ -123,9 +130,9 @@ int main(void){
 	};
 
 	while ((entry=readdir(dir)) != NULL) {
-		if ((int)*entry->d_name != 46){
+		if ((int)*entry->d_name != 46){ //46-ascii val for "."
 			int id = (int)((char)((int)*entry->d_name)- '0');
-			webpage_t *page = pageload(id, dirname);
+			webpage_t* page = pageload(id, dirname);
 
 			if(!page){
 				printf("failed here\n");
@@ -149,10 +156,10 @@ int main(void){
 						// hput(index, ep, word, strlen(word));
 					// }
 					// printf("%s\n",word);
-
+					void* doc_id = (void*)&id;
 					if (hsearch(allWords, searchfn, word, strlen(word))){
 						ep = (entry_p*)hsearch(allWords, searchfn, word, strlen(word));
-						int32_t status = qput(ep->docs, id);
+						int32_t status = qput(ep->docs, doc_id);
 						if (status != 0){
 							exit(EXIT_FAILURE);
 						}
@@ -160,7 +167,7 @@ int main(void){
 					else{
 						queue_t *qp = qopen(); 
 						ep = entryAllDocs(word, qp);
-						int32_t status = qput(ep->docs, id);
+						int32_t status = qput(ep->docs, doc_id);
 						if (status != 0){
 							printf("failed here");
 							exit(EXIT_FAILURE);
@@ -168,14 +175,18 @@ int main(void){
 						hput(allWords, ep, word, strlen(word));
 					}
 				}
+			    free(word);
 			}
+			webpage_delete(page);
 			// happly(index, sum_fn);
 			// happly(allWords, sum_fn_AllDir);
 			// printf("Total word count in hashtable: %d\n", total_count);
 		}
 	}
 	happly(allWords, sum_fn_AllDir);
-	printf("\nTotal word count in all documents: %d\n", count_allDir);
+	printf("\nTotal word count in all documents: %d\n", count_allwords);
+	//happly(allWords, close_queue);
+	//hclose(allWords);
 	closedir(dir);
 	return 0;
 }
