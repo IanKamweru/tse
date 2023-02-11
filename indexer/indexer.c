@@ -119,48 +119,54 @@ static void NormalizeWord(char *word){
 	}
 }
 
-int main(void){
+int main(int argc, char *argv[]){
 	char *dirname = "../pages";
+	int end_id = atoi(argv[1]);
 	int id = 1;
 
-	webpage_t *page = pageload(id, dirname);
-	if(!page)
-		return 1;
-
-	int pos = 0;
-	char *word;
-	entry_t *ep;
 	hashtable_t *index = hopen(hsize);
+	webpage_t *page;
 
-	while((pos=webpage_getNextWord(page,pos,&word)) > 0){
-		NormalizeWord(word);
-		if(word[0]!='\0'){
-			if (hsearch(index, entry_searchfn, word, strlen(word))){
-				ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
-				document_t *dp;
-				if((dp = qsearch(ep->documents,doc_searchfn,&id))){
-					dp->word_count = dp->word_count + 1;
+	while((page = pageload(id, dirname)) && id<=end_id){
+		if(!page)
+			exit(EXIT_FAILURE);
+
+		int pos = 0;
+		char *word;
+		entry_t *ep;
+
+		while((pos=webpage_getNextWord(page,pos,&word)) > 0){
+			NormalizeWord(word);
+			if(word[0]!='\0'){
+				if (hsearch(index, entry_searchfn, word, strlen(word))){
+					ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
+					document_t *dp;
+					if((dp = qsearch(ep->documents,doc_searchfn,&id))){
+						dp->word_count = dp->word_count + 1;
+					}
+					else{
+						dp = new_doc(id,1);
+						qput(ep->documents,dp);
+					}
 				}
 				else{
-					dp = new_doc(id,1);
+					ep = new_entry(word);
+					document_t *dp = new_doc(id,1);
 					qput(ep->documents,dp);
+					hput(index, ep, word, strlen(word));
 				}
+				printf("%s\n",word);
 			}
-			else{
-				ep = new_entry(word);
-				document_t *dp = new_doc(id,1);
-				qput(ep->documents,dp);
-				hput(index, ep, word, strlen(word));
-			}
-			printf("%s\n",word);
 		}
+		id++;
 	}
-
 	happly(index, total_sum_fn);
 	printf("Total word count in hashtable: %d\n", total_count);
-	return 0;
+	exit(EXIT_SUCCESS);
 }
 
 /*
- * Normalized word count - 141
+ * 1 - 141
+ * 2 - 73
+ * 3 - 109
 */
