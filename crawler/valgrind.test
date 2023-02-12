@@ -17,7 +17,7 @@ if [ ! -x "${f}" ] ; then
     exit 1
 fi
 
-bash valgrind --leak-check=full --error-exitcode=1 ${f} "${@}" 2>&1 | tee valgrind.log
+bash valgrind --leak-check=full --show-leak-kinds=all --error-exitcode=1 ${f} "${@}" 2>&1 | tee valgrind.log
 status=$?
 grep "no leaks" valgrind.log > /dev/null
 leaks=$?

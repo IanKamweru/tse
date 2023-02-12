@@ -3,6 +3,8 @@
 crawler
 indexer
 pageio_test
+indexio_test
+test_indexcp
 
 # save files
 *~

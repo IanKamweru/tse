@@ -15,65 +15,13 @@
 #include <string.h>
 #include <ctype.h>
 #include "pageio.h"
+#include "indexio.h"
 #include "hash.h"
 #include "queue.h"
 
 #define hsize 1000    // hashtable size
 
 static int total_count = 0;
-
-/* index entry struct 
- *
- * @param word - the word to add to the index
- * @param documents - the queue of crawled docs containing the word
-*/
-typedef struct entry{
-	char *word;
-	queue_t *documents;
-}entry_t;
-
-/* document struct
- *
- * @param id - document id designated by crawler
- * @param word_count - the count of a specific word in the index in this doc
- */
-typedef struct document{
-	int id;
-	int word_count;
-} document_t;
-
-/* allocate entry */
-entry_t *new_entry(char *word){
-	if (!word)
-		return NULL;
-
-	entry_t *entry = malloc(sizeof(entry_t));
-	if (!entry)
-		return NULL;
-
-	entry->documents = qopen();
-	if (entry->documents == NULL)
-		return NULL;
-
-	entry->word = malloc(strlen(word)+1);
-	if (entry->word == NULL)
-		return NULL;
-
-	strcpy(entry->word, word);
-
-	return entry;
-}
-
-/* allocate document */
-document_t *new_doc(int id, int word_count){
-	document_t *dp = (document_t*)malloc(sizeof(document_t));
-	if(!dp)
-		return NULL;
-	
-	dp->id = id;
-	dp->word_count = word_count;
-	return dp;
-}
 
 /* searches for entry in the hash table */
 static bool entry_searchfn(void *elementp, const void *searchkeyp){
@@ -97,6 +45,13 @@ static void queue_sum_fn(void* elementp){
 static void total_sum_fn(void* ep){
 	entry_t *p = (entry_t*)ep;
 	qapply(p->documents,queue_sum_fn);
+}
+
+/* frees queue of docs and word in index entry */
+static void free_entry(void *ep){
+	entry_t *p = (entry_t*)ep;
+	free(p->word);
+	qclose(p->documents);
 }
 
 static void NormalizeWord(char *word){
@@ -157,11 +112,18 @@ int main(int argc, char *argv[]){
 				}
 				printf("%s\n",word);
 			}
+			free(word);
 		}
+		webpage_delete(page);
 		id++;
 	}
+
 	happly(index, total_sum_fn);
 	printf("Total word count in hashtable: %d\n", total_count);
+
+	webpage_delete(page);
+	happly(index, free_entry);
+	hclose(index);
 	exit(EXIT_SUCCESS);
 }
 
