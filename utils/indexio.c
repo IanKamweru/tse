@@ -93,36 +93,35 @@ int32_t indexsave(hashtable_t *index, char *indexnm){
 hashtable_t *indexload(char *indexnm){
 
     /* open file */
-    file = fopen(indexnm, "r");
-    if(file==NULL || access(indexnm,R_OK) != 0) {
+    FILE *file = fopen(indexnm, "r");
+    if (file == NULL || access(indexnm, R_OK) != 0) {
         return NULL;
     }
 
     hashtable_t *index = hopen(hsize);
-    const int MAX_LINE_LEN = 512;
-    const int MAX_WORD_LEN = 32;
+    const int MAX_LINE_LEN = 256;
     char line_buffer[MAX_LINE_LEN];
-    memset(line_buffer, 0, sizeof line_buffer);
-    char word[MAX_WORD_LEN];
-    memset(word, 0, sizeof line_buffer);
-    int id=0, word_count=0;
+    char *token;
+    char *delim = " ";
+    int id, word_count;
 
     while (fgets(line_buffer, MAX_LINE_LEN, file)) {
-        sscanf(line_buffer, "%s", word);
-    
-        entry_t *ep = new_entry(word);
-        hput(index, ep, word, strlen(word));
+        /* remove trailing white space */
+        int len = strcspn(line_buffer, "\r\n");
+        line_buffer[len] = '\0';
 
-        int i = strlen(word) + 1;
-        document_t *dp;
-        while (sscanf(line_buffer + i, "%d %d", &id, &word_count) == 2) {
-            
-            if((dp=new_doc(id,word_count))){
-                qput(ep->documents,dp);
-            }
-
-            i += 2 * sizeof(int);
+        token = strtok(line_buffer, delim);
+        entry_t *ep = new_entry(token);
+        hput(index, ep, token, strlen(token));
+        
+        while ((token = strtok(NULL, delim)) != NULL) {
+            id = atoi(token);
+            token = strtok(NULL, delim);
+            word_count = atoi(token);
+            document_t *dp = new_doc(id, word_count);
+            qput(ep->documents, dp);
         }
+        
     }
 
     fclose(file);
