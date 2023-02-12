@@ -53,12 +53,12 @@ document_t *new_doc(int id, int word_count){
 }
 
 /* appends doc id and word count in doc */
-void doc_queue_write_fn(void *elementp){
+static void doc_queue_write_fn(void *elementp){
     document_t *dp = (document_t*)elementp;
     fprintf(file, "%d %d ", dp->id, dp->word_count);
 }
 
-void index_write_fn(void *elementp){
+static void index_write_fn(void *elementp){
     entry_t *ep = (entry_t*)elementp;
     fprintf(file, "%s ", ep->word);
     qapply(ep->documents, doc_queue_write_fn);
