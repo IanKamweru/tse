@@ -1,76 +1,15 @@
-/* indexer.c --- indexes the words in crawled pages based on frequency
- * 
- * Authors: Abdibaset Bare, Ian Kamweru and Nathaniel Mensah
- * Created: Tue Jan 31 23:57:45 2023 (-0500)
- * Version: 1.0
- * 
- * Description: The indexer is a program that reads the html associated with 
- * every webpage fetched by the crawler; it constructs in memory an index 
- * data structure that can be used to look up a word and find out 1) which documents (in the crawler 
- * directory) contain the word, and 2) how many times the word occurs in that document.  
- * 
- */
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/stat.h>
 #include <dirent.h>
 #include "pageio.h"
 #include "indexio.h"
 #include "hash.h"
 #include "queue.h"
-#include "webpage.h"
-#include "queue.h"
 
 #define hsize 1000    // hashtable size
 
-// static int total_countc
-static int count_allwords = 0;
-/* index entry struct */
-typedef struct entry{
-	queue_t *docs;
-	char *word;
-	int count;
-}entry_p;
-
-/*added a queue to list of documents it appears*/
-entry_p *entryAllDocs(char *word, queue_t *qp){
-	if (word == NULL)
-		return NULL;
-	
-	entry_p *entry = malloc(sizeof(entry_p));
-	if (!entry)
-		return NULL;
-	
-	entry->word = malloc(strlen(word)+1);
-	if (entry->word == NULL)
-		return NULL;
-	
-	strcpy(entry->word, word);
-	entry->docs = qp;
-	return entry;
-}
-/* allocate entry */
-// entry_p *new_entry(char *word, int count){
-	// if (count < 0 || word == NULL)
-		// return NULL;
-// 
-	// entry_p *entry = malloc(sizeof(entry_p));
-	// if (!entry)
-		// return NULL;
-// 
-	// entry->word = malloc(strlen(word)+1);
-	// if (entry->word == NULL)
-		// return NULL;
-// 
-	// strcpy(entry->word, word);
-	// entry->count = count;
-	// 
-	// return entry;
-// }
-// 
-static bool searchfn(void *elementp, const void *searchkeyp){
-    entry_p *ep = (entry_p*)elementp;
 static int total_count = 0;
 
 /* searches for entry in the hash table */
@@ -125,53 +64,82 @@ static void NormalizeWord(char *word){
 }
 
 int main(int argc, char *argv[]){
-	char *dirname = "../pages";
-	int end_id = atoi(argv[1]);
-	int id = 1;
+	if (argc!=3){
+		printf("usage: indexer <pagedir> <indexnm>\n");
+		exit(EXIT_FAILURE);
+	}
+
+	char *dirname = argv[1];
+	struct stat st_dir;
+
+	/*check if <pagedir> exists*/
+	if (stat(dirname, &st_dir) != 0 || !S_ISDIR(st_dir.st_mode)){
+		printf("%s doesn't exist\n", dirname);
+		exit(EXIT_FAILURE);
+	}
 
 	hashtable_t *index = hopen(hsize);
 	webpage_t *page;
+	DIR *dir;
+	struct dirent *dir_entry;
 
-	while((page = pageload(id, dirname)) && id<=end_id){
-		if(!page)
-			exit(EXIT_FAILURE);
+    dir = opendir(dirname);
+	/*open directory*/
+	if (dir == NULL){
+		printf("Failed to open %s\n", dirname);
+		exit(EXIT_FAILURE);
+	}
 
-		int pos = 0;
-		char *word;
-		entry_t *ep;
+	/*looping over files in dir*/
+	while ((dir_entry = readdir(dir)) != NULL){ 
+		if (dir_entry->d_name[0] != '.'){
+			int id = (int)((char)*dir_entry->d_name)- '0';
+			page = pageload(id, dirname);
+			
+			if(!page)
+				exit(EXIT_FAILURE);
+			
 
-		while((pos=webpage_getNextWord(page,pos,&word)) > 0){
-			NormalizeWord(word);
-			if(word[0]!='\0'){
-				if (hsearch(index, entry_searchfn, word, strlen(word))){
-					ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
-					document_t *dp;
-					if((dp = qsearch(ep->documents,doc_searchfn,&id))){
-						dp->word_count = dp->word_count + 1;
+		    int pos = 0;
+			char *word;
+		    entry_t *ep;
+
+			while((pos=webpage_getNextWord(page,pos,&word)) > 0){
+				NormalizeWord(word);
+				if(word[0]!='\0'){
+					if (hsearch(index, entry_searchfn, word, strlen(word))){
+						ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
+						document_t *dp;
+						if((dp = qsearch(ep->documents,doc_searchfn,&id))){
+							dp->word_count = dp->word_count + 1;
+						}
+						else{
+							dp = new_doc(id,1);
+							qput(ep->documents,dp);
+						}
 					}
 					else{
-						dp = new_doc(id,1);
+						ep = new_entry(word);
+						document_t *dp = new_doc(id,1);
 						qput(ep->documents,dp);
+						hput(index, ep, word, strlen(word));
 					}
+					printf("%s\n",word);
 				}
-				else{
-					ep = new_entry(word);
-					document_t *dp = new_doc(id,1);
-					qput(ep->documents,dp);
-					hput(index, ep, word, strlen(word));
-				}
-				printf("%s\n",word);
+				free(word);
 			}
-			free(word);
-		}
-		webpage_delete(page);
-		id++;
+			webpage_delete(page);
+		}	
+
 	}
 
 	happly(index, total_sum_fn);
 	printf("Total word count in hashtable: %d\n", total_count);
 
-	webpage_delete(page);
+	closedir(dir);
+    if (indexsave(index, argv[2]) != 0){
+		exit(EXIT_FAILURE);
+	}
 	happly(index, free_entry);
 	hclose(index);
 	exit(EXIT_SUCCESS);
