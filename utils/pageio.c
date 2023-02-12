@@ -102,7 +102,6 @@ webpage_t *pageload(int id, char *dirnm){
 
     html[idx] = '\0';
     fclose(file);
-
     /* create webpage */
     webpage_t *page = webpage_new(url,depth,html);
     if(!page){

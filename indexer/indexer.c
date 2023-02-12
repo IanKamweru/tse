@@ -14,13 +14,63 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <dirent.h>
 #include "pageio.h"
 #include "indexio.h"
 #include "hash.h"
 #include "queue.h"
+#include "webpage.h"
+#include "queue.h"
 
 #define hsize 1000    // hashtable size
 
+// static int total_countc
+static int count_allwords = 0;
+/* index entry struct */
+typedef struct entry{
+	queue_t *docs;
+	char *word;
+	int count;
+}entry_p;
+
+/*added a queue to list of documents it appears*/
+entry_p *entryAllDocs(char *word, queue_t *qp){
+	if (word == NULL)
+		return NULL;
+	
+	entry_p *entry = malloc(sizeof(entry_p));
+	if (!entry)
+		return NULL;
+	
+	entry->word = malloc(strlen(word)+1);
+	if (entry->word == NULL)
+		return NULL;
+	
+	strcpy(entry->word, word);
+	entry->docs = qp;
+	return entry;
+}
+/* allocate entry */
+// entry_p *new_entry(char *word, int count){
+	// if (count < 0 || word == NULL)
+		// return NULL;
+// 
+	// entry_p *entry = malloc(sizeof(entry_p));
+	// if (!entry)
+		// return NULL;
+// 
+	// entry->word = malloc(strlen(word)+1);
+	// if (entry->word == NULL)
+		// return NULL;
+// 
+	// strcpy(entry->word, word);
+	// entry->count = count;
+	// 
+	// return entry;
+// }
+// 
+static bool searchfn(void *elementp, const void *searchkeyp){
+    entry_p *ep = (entry_p*)elementp;
 static int total_count = 0;
 
 /* searches for entry in the hash table */
