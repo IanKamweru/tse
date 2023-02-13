@@ -99,7 +99,7 @@ hashtable_t *indexload(char *indexnm){
     }
 
     hashtable_t *index = hopen(hsize);
-    const int MAX_LINE_LEN = 256;
+    const int MAX_LINE_LEN = 1024;
     char line_buffer[MAX_LINE_LEN];
     char *token;
     char *delim = " ";
