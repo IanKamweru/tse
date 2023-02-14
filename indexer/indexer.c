@@ -14,6 +14,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
+#include <sys/stat.h>
+#include <dirent.h>
 #include "pageio.h"
 #include "indexio.h"
 #include "hash.h"
@@ -54,6 +57,21 @@ static void free_entry(void *ep){
 	qclose(p->documents);
 }
 
+
+int compare_func(const void *a, const void *b){
+	const int *val_a = (const int *)a;
+	const int *val_b = (const int *)b;
+	if (*val_a < *val_b){
+		return -1;
+	}
+	else if (*val_a > *val_b){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 static void NormalizeWord(char *word){
 	if(!word)
 		return;
@@ -75,14 +93,54 @@ static void NormalizeWord(char *word){
 }
 
 int main(int argc, char *argv[]){
-	char *dirname = "../pages";
-	int end_id = atoi(argv[1]);
-	int id = 1;
+	if (argc!=3){
+		printf("usage: indexer <pagedir> <indexnm>\n");
+		exit(EXIT_FAILURE);
+	}
+
+	char *dirname = argv[1];
+	struct stat st_dir;
+	
+	/* check if <pagedir> exists */
+	if (stat(dirname, &st_dir) != 0 || !S_ISDIR(st_dir.st_mode)){
+		printf("Error: %s doesn't exist\n", dirname);
+		exit(EXIT_FAILURE);
+	}
 
 	hashtable_t *index = hopen(hsize);
 	webpage_t *page;
+	DIR *dir;
+	struct dirent *dir_entry;
+	int count= 0;
+	int *files = NULL;
 
-	while((page = pageload(id, dirname)) && id<=end_id){
+
+	/* open directory */
+	dir = opendir(dirname);
+	if (dir == NULL){
+		printf("Failed to open %s\n", dirname);
+		exit(EXIT_FAILURE);
+	}
+
+	/* add file ids to array */
+	while ((dir_entry=readdir(dir)) !=NULL){
+		if (dir_entry->d_name[0] != '.'){
+			int id = atoi(dir_entry->d_name);
+			count++;
+			files = realloc(files, count* sizeof(int));	
+			files[count-1] = id;
+		 } 
+	}
+	closedir(dir);
+
+	/* sort the files in order using compare_func */
+	qsort(files, count, sizeof(int),  compare_func);
+
+	/* loop over files */
+	for (int i=0; i<count; i++){
+		printf("loading page id: %d ...\n", files[i]);
+		page = pageload(files[i], dirname);
+			
 		if(!page)
 			exit(EXIT_FAILURE);
 
@@ -96,32 +154,35 @@ int main(int argc, char *argv[]){
 				if (hsearch(index, entry_searchfn, word, strlen(word))){
 					ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
 					document_t *dp;
-					if((dp = qsearch(ep->documents,doc_searchfn,&id))){
+					if((dp = qsearch(ep->documents,doc_searchfn,&files[i]))){
 						dp->word_count = dp->word_count + 1;
 					}
 					else{
-						dp = new_doc(id,1);
+						dp = new_doc(files[i],1);
 						qput(ep->documents,dp);
 					}
 				}
 				else{
 					ep = new_entry(word);
-					document_t *dp = new_doc(id,1);
+					document_t *dp = new_doc(files[i],1);
 					qput(ep->documents,dp);
 					hput(index, ep, word, strlen(word));
 				}
-				printf("%s\n",word);
+				//printf("%s\n",word);
 			}
 			free(word);
 		}
-		webpage_delete(page);
-		id++;
+		printf("page id: %d loaded successfully.\n", files[i]);
+		webpage_delete(page);	
 	}
 
 	happly(index, total_sum_fn);
 	printf("Total word count in hashtable: %d\n", total_count);
-
-	webpage_delete(page);
+	
+	free(files);
+    if (indexsave(index, argv[2]) != 0){
+		exit(EXIT_FAILURE);
+	}
 	happly(index, free_entry);
 	hclose(index);
 	exit(EXIT_SUCCESS);
