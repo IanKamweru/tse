@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 #include <sys/stat.h>
 #include <dirent.h>
 #include "pageio.h"
@@ -43,6 +44,21 @@ static void free_entry(void *ep){
 	qclose(p->documents);
 }
 
+
+int compare_func(const void *a, const void *b){
+	const int *val_a = (const int *)a;
+	const int *val_b = (const int *)b;
+	if (*val_a < *val_b){
+		return -1;
+	}
+	else if (*val_a > *val_b){
+		return 1;
+	}
+	else {
+		return 0;
+	}
+}
+
 static void NormalizeWord(char *word){
 	if(!word)
 		return;
@@ -71,7 +87,7 @@ int main(int argc, char *argv[]){
 
 	char *dirname = argv[1];
 	struct stat st_dir;
-
+	
 	/*check if <pagedir> exists*/
 	if (stat(dirname, &st_dir) != 0 || !S_ISDIR(st_dir.st_mode)){
 		printf("%s doesn't exist\n", dirname);
@@ -82,6 +98,9 @@ int main(int argc, char *argv[]){
 	webpage_t *page;
 	DIR *dir;
 	struct dirent *dir_entry;
+	int count= 0;
+	int *files = NULL;
+
 
     dir = opendir(dirname);
 	/*open directory*/
@@ -90,46 +109,59 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	/*looping over files in dir*/
-	while ((dir_entry = readdir(dir)) != NULL){ 
+	/*putting the files in an array*/
+	while ((dir_entry=readdir(dir)) !=NULL){
 		if (dir_entry->d_name[0] != '.'){
-			int id = (int)((char)*dir_entry->d_name)- '0';
-			page = pageload(id, dirname);
+			int id = atoi(dir_entry->d_name);
+			count++;
+			files = realloc(files, count* sizeof(int));	
+			files[count-1] = id;
+		 }
+		 
+	}
+	
+	/*sorting the files in chronological order using compare_func*/
+	qsort(files, count, sizeof(int),  compare_func);
+    
+
+	/*looping over files in dir*/
+	for (int i=0; i<count; i++){
+		printf("file id: %d\n", files[i]);
+		page = pageload(files[i], dirname);
 			
-			if(!page)
-				exit(EXIT_FAILURE);
+		if(!page)
+			exit(EXIT_FAILURE);
 			
 
-		    int pos = 0;
-			char *word;
-		    entry_t *ep;
+		int pos = 0;
+		char *word;
+		entry_t *ep;
 
-			while((pos=webpage_getNextWord(page,pos,&word)) > 0){
-				NormalizeWord(word);
-				if(word[0]!='\0'){
-					if (hsearch(index, entry_searchfn, word, strlen(word))){
-						ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
-						document_t *dp;
-						if((dp = qsearch(ep->documents,doc_searchfn,&id))){
-							dp->word_count = dp->word_count + 1;
-						}
-						else{
-							dp = new_doc(id,1);
-							qput(ep->documents,dp);
-						}
+		while((pos=webpage_getNextWord(page,pos,&word)) > 0){
+			NormalizeWord(word);
+			if(word[0]!='\0'){
+				if (hsearch(index, entry_searchfn, word, strlen(word))){
+					ep = (entry_t*)hsearch(index, entry_searchfn, word, strlen(word));
+					document_t *dp;
+					if((dp = qsearch(ep->documents,doc_searchfn,&files[i]))){
+						dp->word_count = dp->word_count + 1;
 					}
 					else{
-						ep = new_entry(word);
-						document_t *dp = new_doc(id,1);
+						dp = new_doc(files[i],1);
 						qput(ep->documents,dp);
-						hput(index, ep, word, strlen(word));
 					}
-					printf("%s\n",word);
 				}
-				free(word);
+				else{
+					ep = new_entry(word);
+					document_t *dp = new_doc(files[i],1);
+					qput(ep->documents,dp);
+					hput(index, ep, word, strlen(word));
+				}
+				printf("%s\n",word);
 			}
-			webpage_delete(page);
-		}	
+			free(word);
+		}
+		webpage_delete(page);	
 
 	}
 
@@ -137,6 +169,8 @@ int main(int argc, char *argv[]){
 	printf("Total word count in hashtable: %d\n", total_count);
 
 	closedir(dir);
+	free(files);
+	files=NULL;
     if (indexsave(index, argv[2]) != 0){
 		exit(EXIT_FAILURE);
 	}
