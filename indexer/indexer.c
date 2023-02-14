@@ -17,10 +17,10 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <dirent.h>
-#include "pageio.h"
-#include "indexio.h"
-#include "hash.h"
-#include "queue.h"
+#include <pageio.h>
+#include <indexio.h>
+#include <hash.h>
+#include <queue.h>
 
 #define hsize 1000    // hashtable size
 
@@ -58,7 +58,7 @@ static void free_entry(void *ep){
 }
 
 
-int compare_func(const void *a, const void *b){
+static int compare_func(const void *a, const void *b){
 	const int *val_a = (const int *)a;
 	const int *val_b = (const int *)b;
 	if (*val_a < *val_b){
