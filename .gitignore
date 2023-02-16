@@ -2,6 +2,7 @@
 *.o
 crawler
 indexer
+query
 pageio_test
 indexio_test
 test_indexcp
