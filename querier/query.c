@@ -39,6 +39,24 @@ static bool NormalizeWord(char *word){
     return true;
 }
 
+/* validates query for invalid syntax */
+static bool validate_query(char query[][MAX_QUERY_LEN], int num_tokens){
+    if(strcmp(query[0],"and") == 0 || strcmp(query[0],"or") == 0 ||
+        strcmp(query[num_tokens-1],"and") == 0 ||
+        strcmp(query[num_tokens-1],"or") == 0){
+        return false;
+    }
+    for (int i = 0; i < num_tokens-1; i++) {
+        if ((strcmp(query[i], "and") == 0 && strcmp(query[i+1], "and") == 0) || 
+            (strcmp(query[i], "or") == 0 && strcmp(query[i+1], "or") == 0) ||
+            (strcmp(query[i], "and") == 0 && strcmp(query[i+1], "or") == 0) ||
+            (strcmp(query[i], "or") == 0 && strcmp(query[i+1], "and") == 0)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 /* search for query token in index */
 static bool token_searchfn(void *elementp, const void *key){
     entry_t *ep = (entry_t*)elementp;
@@ -50,16 +68,16 @@ int main(void){
     char* index_file = "index";
     hashtable_t *index = indexload(index_file);
 
-    char tokens[MAX_TOKENS][MAX_QUERY_LEN];
+    char query[MAX_TOKENS][MAX_QUERY_LEN];
     char input[MAX_QUERY_LEN], *token;
     int num_tokens, count, rank;
     entry_t *ep;
     document_t *dp;
-    bool valid_query;
+    bool valid_token;
     
 
     while(1){
-        valid_query = true;
+        valid_token = true;
 		num_tokens = 0, count = 0, rank = -1;
         printf("> ");
         if(scanf("%[^\n]", input) == EOF){
@@ -73,36 +91,36 @@ int main(void){
             token = strtok(input, " ");
             while(token){
                 if(NormalizeWord(token)){
-                    strcpy(tokens[num_tokens++], token);
+                    strcpy(query[num_tokens++], token);
                 }
                 else{
-                    valid_query = false;
-                    printf("[invalid query]\n");
-                    input[0] = '\0';
+                    valid_token = false;
                     break;
                 }
                 token = strtok(NULL, " ");
             }
 
-            if(!valid_query){
+            if(!valid_token || !validate_query(query,num_tokens)){
+                printf("[invalid query]\n");
+                input[0] = '\0';
                 continue;
             }
 
             /* process each token */
             for (int i = 0; i < num_tokens; i++, count=0) {
-                if(strlen(tokens[i]) < 3)
+                if(strlen(query[i]) < 3 || strcmp(query[i],"and")==0 || strcmp(query[i],"or")==0)
 					continue;
-                ep = hsearch(index, token_searchfn, tokens[i], strlen(tokens[i]));
+                ep = hsearch(index, token_searchfn, query[i], strlen(query[i]));
 
                 if(ep){
                     dp = qget(ep->documents);
                     count = dp->word_count;
-                    rank = count < rank || rank < 0 ? count : rank;
                 }
-				printf("%s:%d ", tokens[i], count);
+                rank = count < rank || rank < 0 ? count : rank;
+				printf("%s:%d ", query[i], count);
             }
 
-            memset(tokens, 0, sizeof(tokens));
+            memset(query, 0, sizeof(query));
 			rank = rank == -1 ? 0 : rank;
             printf("-- %d\n", rank);
         }
