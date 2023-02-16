@@ -40,7 +40,7 @@ static bool NormalizeWord(char *word){
 }
 
 /* search for query token in index */
-static bool searchfn(void *elementp, const void *key){
+static bool token_searchfn(void *elementp, const void *key){
     entry_t *ep = (entry_t*)elementp;
     return strcmp(ep->word,(char*)key)==0;
 }
@@ -60,7 +60,7 @@ int main(void){
 
     while(1){
         valid_query = true;
-		num_tokens = 0, count = 0, rank = INT16_MAX;
+		num_tokens = 0, count = 0, rank = -1;
         printf("> ");
         if(scanf("%[^\n]", input) == EOF){
             printf("\n");
@@ -92,23 +92,25 @@ int main(void){
             for (int i = 0; i < num_tokens; i++, count=0) {
                 if(strlen(tokens[i]) < 3)
 					continue;
-                ep = hsearch(index, searchfn, tokens[i], strlen(tokens[i]));
+                ep = hsearch(index, token_searchfn, tokens[i], strlen(tokens[i]));
 
                 if(ep){
                     dp = qget(ep->documents);
                     count = dp->word_count;
-                    rank = count < rank ? count : rank;
+                    rank = count < rank || rank < 0 ? count : rank;
                 }
 				printf("%s:%d ", tokens[i], count);
             }
 
             memset(tokens, 0, sizeof(tokens));
-			rank = rank == INT16_MAX ? 0 : rank;
+			rank = rank == -1 ? 0 : rank;
             printf("-- %d\n", rank);
         }
 
         input[0] = '\0';
     }
 
+	free_entries(index);
+	hclose(index);
     exit(EXIT_SUCCESS);
 }
