@@ -52,6 +52,17 @@ document_t *new_doc(int id, int word_count){
 	return dp;
 }
 
+/* frees all the entries in the index hashtable */
+static void free_entry(void *ep){
+    entry_t *entryp = (entry_t*)ep;
+    free(entryp->word);
+    qclose(entryp->documents);
+}
+
+void free_entries(hashtable_t *index){
+    happly(index,free_entry);
+}
+
 /* appends doc id and word count in doc */
 static void doc_queue_write_fn(void *elementp){
     document_t *dp = (document_t*)elementp;

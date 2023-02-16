@@ -11,12 +11,6 @@
 #include <stdio.h>
 #include "indexio.h"
 
-void free_entry(void *ep){
-    entry_t *entryp = (entry_t*)ep;
-    free(entryp->word);
-    qclose(entryp->documents);
-}
-
 int main(void){
     char *indexnm = "test_index";
     printf("Loading index...\n");
@@ -35,7 +29,7 @@ int main(void){
         exit(EXIT_FAILURE);
     }
     printf("Saved index successfully to: %s\n",indexcp);
-    happly(index,free_entry);
+    free_entries(index);
     hclose(index);
 
     index = indexload(indexcp);
@@ -43,7 +37,7 @@ int main(void){
         printf("Index loaded successfully from: %s\n",indexcp);
     }
 
-    happly(index,free_entry);
+    free_entries(index);
     hclose(index);
     exit(EXIT_SUCCESS);
 }

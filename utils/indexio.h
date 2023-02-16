@@ -58,3 +58,8 @@ int32_t indexsave(hashtable_t *index, char *indexnm);
  * the user is responsible for freeing the hash table
  */
 hashtable_t *indexload(char *indexnm);
+
+/*
+ * free_entries -- frees all entry structs in the index
+ */
+void free_entries(hashtable_t *index);

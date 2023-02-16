@@ -50,14 +50,6 @@ static void total_sum_fn(void* ep){
 	qapply(p->documents,queue_sum_fn);
 }
 
-/* frees queue of docs and word in index entry */
-static void free_entry(void *ep){
-	entry_t *p = (entry_t*)ep;
-	free(p->word);
-	qclose(p->documents);
-}
-
-
 static int compare_func(const void *a, const void *b){
 	const int *val_a = (const int *)a;
 	const int *val_b = (const int *)b;
@@ -183,7 +175,7 @@ int main(int argc, char *argv[]){
     if (indexsave(index, argv[2]) != 0){
 		exit(EXIT_FAILURE);
 	}
-	happly(index, free_entry);
+	free_entries(index);
 	hclose(index);
 	exit(EXIT_SUCCESS);
 }
