@@ -17,6 +17,8 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdbool.h>
+#include <hash.h>
+#include <indexio.h>
 
 #define MAX_QUERY_LEN 512
 #define MAX_TOKENS 100
@@ -37,15 +39,28 @@ static bool NormalizeWord(char *word){
     return true;
 }
 
+/* search for query token in index */
+static bool searchfn(void *elementp, const void *key){
+    entry_t *ep = (entry_t*)elementp;
+    return strcmp(ep->word,(char*)key)==0;
+}
+
 int main(void){
+
+    char* index_file = "index";
+    hashtable_t *index = indexload(index_file);
 
     char tokens[MAX_TOKENS][MAX_QUERY_LEN];
     char input[MAX_QUERY_LEN], *token;
-    int num_tokens = 0;
+    int num_tokens, count, rank;
+    entry_t *ep;
+    document_t *dp;
     bool valid_query;
     
+
     while(1){
         valid_query = true;
+		num_tokens = 0, count = 0, rank = INT16_MAX;
         printf("> ");
         if(scanf("%[^\n]", input) == EOF){
             printf("\n");
@@ -53,6 +68,7 @@ int main(void){
         }
         getchar(); // strip newline character
 
+        /* query */
         if(input[0]){
             token = strtok(input, " ");
             while(token){
@@ -71,15 +87,26 @@ int main(void){
             if(!valid_query){
                 continue;
             }
-            // Print query
-            for (int i = 0; i < num_tokens; i++) {
-                printf("%s ", tokens[i]);
+
+            /* process each token */
+            for (int i = 0; i < num_tokens; i++, count=0) {
+                if(strlen(tokens[i]) < 3)
+					continue;
+                ep = hsearch(index, searchfn, tokens[i], strlen(tokens[i]));
+
+                if(ep){
+                    dp = qget(ep->documents);
+                    count = dp->word_count;
+                    rank = count < rank ? count : rank;
+                }
+				printf("%s:%d ", tokens[i], count);
             }
 
-            num_tokens = 0;
             memset(tokens, 0, sizeof(tokens));
-            printf("\n");
+			rank = rank == INT16_MAX ? 0 : rank;
+            printf("-- %d\n", rank);
         }
+
         input[0] = '\0';
     }
 
