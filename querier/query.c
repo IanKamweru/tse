@@ -174,7 +174,8 @@ int main(void){
                     ranked_docs = new_ranked_docs; // Update ranked_docs with new queue
                 } 
                 else{ // token not in index
-                    while((doc=qget(ranked_docs))){} // ???
+                    qclose(ranked_docs);
+                    ranked_docs = NULL;
                 }
             }
 
