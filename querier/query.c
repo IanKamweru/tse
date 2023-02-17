@@ -19,9 +19,31 @@
 #include <stdbool.h>
 #include <hash.h>
 #include <indexio.h>
+#include <pageio.h>
 
 #define MAX_QUERY_LEN 512
 #define MAX_TOKENS 100
+
+typedef struct doc {
+    int id;
+    int rank;
+    char url[1024];
+} doc_rank_t;
+
+static doc_rank_t* init_doc(int id, int rank, char *url){
+    doc_rank_t *doc;
+    if (!url) {
+        return NULL;
+    }
+    if (!(doc=(doc_rank_t*)malloc(sizeof(doc_rank_t)))) {
+        printf("Error in allocating memory\n");
+        return NULL;
+    }
+    strcpy(doc->url, url);
+    doc->id = id;
+    doc->rank = rank;
+    return doc;
+}
 
 static bool NormalizeWord(char *word){
 	if(!word)
@@ -63,20 +85,32 @@ static bool token_searchfn(void *elementp, const void *key){
     return strcmp(ep->word,(char*)key)==0;
 }
 
+/* search for doc in ranked docs queue */
+static bool doc_searchfn(void *elementp, const void *id){
+    doc_rank_t *dp = (doc_rank_t*)elementp;
+    return dp->id == *((int*)id);
+}
+
 int main(void){
 
-    char* index_file = "index";
+    char *index_file = "index";
+    char *pagedir = "../pages";
     hashtable_t *index;
+    queue_t *ranked_docs, *new_ranked_docs;
+    webpage_t *page;
 
     char query[MAX_TOKENS][MAX_QUERY_LEN];
     char input[MAX_QUERY_LEN], *token;
     int num_tokens, count, rank;
     entry_t *ep;
     document_t *dp;
+    doc_rank_t *doc;
     bool valid_token;
 
     while(1){
         index = indexload(index_file);
+        ranked_docs = NULL;
+
         valid_token = true;
 		num_tokens = 0, count = 0, rank = -1;
         printf("> ");
@@ -113,21 +147,47 @@ int main(void){
                 ep = hsearch(index, token_searchfn, query[i], strlen(query[i]));
 
                 if(ep){
-                    dp = qget(ep->documents);
-                    count = dp->word_count;
+                    new_ranked_docs = qopen();
+                    /* first iteration - add all docs */
+                    if(!ranked_docs){
+                        while((dp = qget(ep->documents))){
+                            count = dp->word_count;
+                            page = pageload(dp->id,pagedir);
+                            doc = init_doc(dp->id,count,webpage_getURL(page));
+                            qput(new_ranked_docs, doc);
+                        }
+                    } else {
+                        // Add only documents containing current token from ranked_docs to new queue
+                        document_t *tmp;
+                        while ((doc = qget(ranked_docs))) {
+                            if ((tmp=qsearch(ep->documents, doc_searchfn, &(doc->id)))) {
+                                // Add doc to new queue
+                                count = tmp->word_count;
+                                rank = doc->rank;
+                                doc->rank = count < rank ? count : rank;
+                                qput(new_ranked_docs, doc);
+                            } else {
+                                // Doc in ranked queue doesn't contain current token
+                            }
+                        }
+                    }
+                    ranked_docs = new_ranked_docs; // Update ranked_docs with new queue
+                } 
+                else{ // token not in index
+                    while((doc=qget(ranked_docs))){} // ???
                 }
-                rank = count < rank || rank < 0 ? count : rank;
-				printf("%s:%d ", query[i], count);
+            }
+
+            /* print docs' rank & url */
+            while((doc=qget(ranked_docs))){
+                printf("rank:%d doc:%d : %s\n",doc->rank,doc->id,doc->url);
             }
             memset(query, 0, sizeof(query));
-			rank = rank == -1 ? 0 : rank;
-            printf("-- %d\n", rank);
         }
-
         input[0] = '\0';
         free_entries(index);
 	    hclose(index);
+        qclose(ranked_docs);
     }
-
     exit(EXIT_SUCCESS);
 }
