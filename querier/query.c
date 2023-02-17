@@ -26,9 +26,7 @@
 static bool NormalizeWord(char *word){
 	if(!word)
 		return false;
-	
 	int len = strlen(word);
-
 	int i;
 	for(i=0; i<len; i++){
 		if(!isalpha(word[i])){
@@ -47,11 +45,13 @@ static bool validate_query(char query[][MAX_QUERY_LEN], int num_tokens){
         return false;
     }
     for (int i = 0; i < num_tokens-1; i++) {
-        if ((strcmp(query[i], "and") == 0 && strcmp(query[i+1], "and") == 0) || 
-            (strcmp(query[i], "or") == 0 && strcmp(query[i+1], "or") == 0) ||
-            (strcmp(query[i], "and") == 0 && strcmp(query[i+1], "or") == 0) ||
-            (strcmp(query[i], "or") == 0 && strcmp(query[i+1], "and") == 0)) {
-            return false;
+        if(strcmp(query[i], "and") == 0){
+            if(strcmp(query[i+1], "and") == 0 || strcmp(query[i+1], "or") == 0)
+                return false;  
+        }
+        else if(strcmp(query[i], "or") == 0){
+            if(strcmp(query[i+1], "and") == 0 || strcmp(query[i+1], "or") == 0)
+                return false;
         }
     }
     return true;
@@ -66,7 +66,7 @@ static bool token_searchfn(void *elementp, const void *key){
 int main(void){
 
     char* index_file = "index";
-    hashtable_t *index = indexload(index_file);
+    hashtable_t *index;
 
     char query[MAX_TOKENS][MAX_QUERY_LEN];
     char input[MAX_QUERY_LEN], *token;
@@ -74,9 +74,9 @@ int main(void){
     entry_t *ep;
     document_t *dp;
     bool valid_token;
-    
 
     while(1){
+        index = indexload(index_file);
         valid_token = true;
 		num_tokens = 0, count = 0, rank = -1;
         printf("> ");
@@ -119,16 +119,15 @@ int main(void){
                 rank = count < rank || rank < 0 ? count : rank;
 				printf("%s:%d ", query[i], count);
             }
-
             memset(query, 0, sizeof(query));
 			rank = rank == -1 ? 0 : rank;
             printf("-- %d\n", rank);
         }
 
         input[0] = '\0';
+        free_entries(index);
+	    hclose(index);
     }
 
-	free_entries(index);
-	hclose(index);
     exit(EXIT_SUCCESS);
 }
