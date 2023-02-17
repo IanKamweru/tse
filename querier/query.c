@@ -122,7 +122,7 @@ int main(void){
 
         /* query */
         if(input[0]){
-            token = strtok(input, " ");
+            token = strtok(input, " \t");
             while(token){
                 if(NormalizeWord(token)){
                     strcpy(query[num_tokens++], token);
@@ -131,7 +131,7 @@ int main(void){
                     valid_token = false;
                     break;
                 }
-                token = strtok(NULL, " ");
+                token = strtok(NULL, " \t");
             }
 
             if(!valid_token || !validate_query(query,num_tokens)){
@@ -172,7 +172,7 @@ int main(void){
                         }
                     }
                     ranked_docs = new_ranked_docs; // Update ranked_docs with new queue
-                } 
+                }
                 else{ // token not in index
                     qclose(ranked_docs);
                     ranked_docs = NULL;
@@ -190,5 +190,6 @@ int main(void){
 	    hclose(index);
         qclose(ranked_docs);
     }
+
     exit(EXIT_SUCCESS);
 }
