@@ -163,7 +163,7 @@ int main(void){
         /* process each token */
         for (int i = 0; i < num_tokens; i++) {
             token = tokenized_query[i];
-            if(strcmp(token,and)==0 || strcmp(tokenized_query[i],or)==0)
+            if(strcmp(token, and)==0 || strcmp(token, or)==0)
                 continue;
 
             ep = hsearch(index, token_searchfn, token, strlen(token));
@@ -192,6 +192,7 @@ int main(void){
 
     exit(EXIT_SUCCESS);
 }
+
 /****************************************************************************/
 
 /******************************** FUNCTIONS *********************************/
