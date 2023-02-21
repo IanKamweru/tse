@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <sys/stat.h>
 #include <stdbool.h>
 #include <hash.h>
 #include <indexio.h>
@@ -77,6 +78,15 @@ static bool NormalizeWord(char *word);
 static bool validate_query(char **query, int num_tokens);
 
 /**
+ * parses the arguments from command line and assigns them
+ * 
+ * @param pagedir a pointer to a buffer in which to write crawled pagedir
+ * @param indexfile a pointer to a buffer in which to write the index file
+ * @return 0 if successful, -1 if invalid
+*/
+static int parse_args(int argc, char *argv[], char **pagedir, char **indexfile);
+
+/**
  * searches for a query token in the index
  * 
  * @param elementp a pointer to an element in the index (elementp contains a word and wordcount)
@@ -120,9 +130,12 @@ static queue_t* get_intersection(queue_t *qp1, queue_t *qp2);
 static queue_t* get_union(queue_t *qp1, queue_t *qp2);
 
 /*************************** MAIN ******************************/
-int main(void){
-
-    char *index_file = "index", *pagedir = "../pages";
+int main(int argc, char *argv[]){
+    /* use case: query ../pages index < good-queries.txt > output */
+    char *pagedir, *index_file;
+    if(parse_args(argc, argv, &pagedir, &index_file) != 0){
+        exit(EXIT_FAILURE);
+    }
     const char *and = "and", *or = "or";
     hashtable_t *index = indexload(index_file);
 
@@ -365,6 +378,52 @@ static void get_url(queue_t *ranked_docs, char *pagedir){
     while((dp = qget(tmp)))
         qput(ranked_docs, dp);
     qclose(tmp);
+}
+
+static int parse_args(int argc, char *argv[], char **pagedir, char **indexfile){
+    if (argc < 3 || argc > 4) {
+        fprintf(stderr, "usage: query <pageDirectory> <indexFile> [-q]\n");
+        return -1;
+    }
+    if (argc == 4 && strcmp(argv[3], "-q") != 0) {
+        fprintf(stderr, "usage: query <pageDirectory> <indexFile> [-q]\n");
+        return -1;
+    }
+    if(!(*pagedir=malloc(strlen(argv[1])+1))){
+        fprintf(stderr, "error: failed to allocate memory for page directory\n");
+        return -1;
+    }
+    if(!(*indexfile=malloc(strlen(argv[2])+1))){
+        fprintf(stderr, "error: failed to allocate memory for page directory\n");
+        return -1;
+    }
+    struct stat dir_stat, file_stat;
+    // Verify pagedir exists and is a directory
+    if (stat(argv[1], &dir_stat) != 0) {
+        fprintf(stderr, "Error: pagedir '%s' does not exist or cannot be accessed.\n", argv[1]);
+        return -1;
+    }
+    if (!S_ISDIR(dir_stat.st_mode)) {
+        fprintf(stderr, "Error: '%s' is not a directory.\n", argv[1]);
+        return -1;
+    }
+
+    // Verify indexfile exists and is a readable file
+    if (stat(argv[2], &file_stat) != 0) {
+        fprintf(stderr, "Error: indexfile '%s' does not exist or cannot be accessed.\n", argv[2]);
+        return -1;
+    }
+    if (!S_ISREG(file_stat.st_mode)) {
+        fprintf(stderr, "Error: '%s' is not a regular file.\n", argv[2]);
+        return -1;
+    }
+    if (access(argv[2], R_OK) != 0) {
+        fprintf(stderr, "Error: '%s' cannot be read.\n", argv[2]);
+        return -1;
+    }
+    strcpy(*pagedir, argv[1]);
+    strcpy(*indexfile, argv[2]);
+    return 0;
 }
 
 static bool token_searchfn(void *elementp, const void *key){
