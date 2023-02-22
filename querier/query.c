@@ -31,6 +31,8 @@ typedef struct doc {
     int id;
     int word_count;
     char *url;
+    char *title;
+    char *content;
 } rankedDoc_t;
 
 /*************************** PROTOTYPES ********************************/
@@ -102,13 +104,21 @@ static bool token_searchfn(void *elementp, const void *key);
 */
 static bool doc_searchfn(void *elementp, const void *id);
 
+static int comparator(const void *a, const void *b);
+
+static void sort_queue(queue_t **qp);
+
+static void free_doc(rankedDoc_t *dp);
+
+static void free_queue(queue_t *qp);
+
 /**
- * sets the ranked page url
+ * sets the ranked page url, title and description
  * 
  * @param ranked_docs the queue of ranked docs
  * @param pagedir the directory containing crawled pages
 */
-static void get_url(queue_t *ranked_docs, char *pagedir);
+static void get_metadata(queue_t *ranked_docs, char *pagedir);
 
 /**
  * finds the intersection between two ranked queues
@@ -147,7 +157,6 @@ int main(int argc, char *argv[]){
     queue_t *ranked_docs, **stack=NULL, *tmp, *qp1, *qp2;
 
     while(1){
-        ranked_docs = qopen();
 		num_tokens = 0;
         top = -1;
         curr_operator = "";
@@ -167,10 +176,15 @@ int main(int argc, char *argv[]){
 
         /* validate query */
         if(!tokenized_query || !validate_query(tokenized_query,num_tokens)){
+            for(int i = 0; i < num_tokens; i++){
+                free(tokenized_query[i]);
+            }
+            free(tokenized_query);
             printf("[invalid query]\n");
             query[0] = '\0';
             continue;
         }
+        ranked_docs = qopen();
 
         /* process tokens in Backus-Naur Form */
         for(int i = 0; i < num_tokens; i++){
@@ -203,20 +217,36 @@ int main(int argc, char *argv[]){
             qp1 = stack[top--];
             qp2 = stack[top--];
             stack[++top] = get_union(qp1, qp2);
+            free_queue(qp2);
         }
-        ranked_docs = stack[top--];
+        ranked_docs = stack[top];
+    
 
-        /* set metadata -> url, title, heading */
-        get_url(ranked_docs, pagedir);
+        /* set metadata -> url, title, content */
+        get_metadata(ranked_docs, pagedir);
 
+        /* sort ranked docs */
+        sort_queue(ranked_docs);
+    
         /* print docs' rank & url */
         while((doc=qget(ranked_docs))){
-            printf("rank:%d doc:%d : %s\n",doc->word_count,doc->id,doc->url);
+            printf("title: %s\nrank:%d doc:%d : %s\n",doc->title, doc->word_count,doc->id,doc->url);
+            printf("%s...\n\n",doc->content);
+            free_doc(doc);
         }
 
-        qclose(ranked_docs);
+        /* free memory */
+        for(int i = 0; i < num_tokens; i++){
+            free(tokenized_query[i]);
+        }
+        free(tokenized_query);
+        free_queue(ranked_docs);
     }
 
+    /* free memory */
+    free_entries(index);
+    hclose(index);
+    free(pagedir); free(index_file);
     exit(EXIT_SUCCESS);
 }
 
@@ -241,8 +271,15 @@ static char** tokenize_query(char *query, int *num_tokens){
     char* token = strtok(query, " \t");
     int count = 0;
     while(token){
-        if(!NormalizeWord(token))
+        if(!NormalizeWord(token)){
+            /* free memory */
+            for(int i = 0; i < count; i++){
+                free(tokenized_query[i]);
+            }
+            free(tokenized_query);
             return NULL;
+        }
+
         if(strlen(token) < 3 && strcmp(token,"or")!=0){
             token = strtok(NULL, " \t");
             continue;
@@ -277,6 +314,9 @@ static rankedDoc_t* init_doc(int id, int rank){
     }
     doc->id = id;
     doc->word_count = rank;
+    doc->title = NULL;
+    doc->url = NULL;
+    doc->content = NULL;
     return doc;
 }
 
@@ -317,8 +357,8 @@ static queue_t* get_intersection(queue_t *qp1, queue_t *qp2){
     queue_t *intersect = qopen();
     if(!qp1 || !qp2 || !intersect)
         return NULL;
-    document_t *doc;
-    rankedDoc_t *dp;
+    //document_t *doc;
+    rankedDoc_t *dp, *doc;
     int word_count, rank;
     while((doc = qget(qp1))){
         if ((dp=qsearch(qp2, doc_searchfn, &(doc->id)))) {
@@ -326,9 +366,11 @@ static queue_t* get_intersection(queue_t *qp1, queue_t *qp2){
             rank = doc->word_count;
             doc->word_count = word_count < rank ? word_count : rank;
             qput(intersect, doc);
-        }
+        } else free_doc(doc);
     }
-
+    qclose(qp1);
+    free_queue(qp2);
+    //qclose(qp2);
     return intersect;
 }
 
@@ -359,22 +401,54 @@ static queue_t* get_union(queue_t *qp1, queue_t *qp2){
     return qp1;
 }
 
-static void get_url(queue_t *ranked_docs, char *pagedir){
+static void get_metadata(queue_t *ranked_docs, char *pagedir){
     rankedDoc_t *dp;
     queue_t *tmp = qopen();
-    int id; webpage_t *page; char *url;
+    int id, len; webpage_t *page; char *url, *html, *start, *end, *content;
     while((dp = qget(ranked_docs))){
         id = dp->id;
         if((page = pageload(id, pagedir))){
             url = webpage_getURL(page);
+            html = webpage_getHTML(page);
             if((dp->url = malloc(strlen(url) + 1))){
                 strcpy(dp->url, url);
             }
+            start = strstr(html, "<title>");
+            if (start != NULL) {
+                end = strstr(start, "</title>");
+                if (end != NULL) {
+                    len = end - start - strlen("<title>");
+                    if((dp->title = malloc(len + 1))){
+                        strncpy(dp->title, start + strlen("<title>"), len);
+                        dp->title[len] = '\0';
+                    }
+                }
+            }
+            start=NULL, end=NULL;
+            start = strstr(html, "<meta name=\"description\"");
+            if (start != NULL) {
+                content = strstr(start, "content=\"");
+                if(content != NULL){
+                    content += strlen("content=\"");
+                    end = strchr(content, '\"');
+                    if (end != NULL) {
+                        int len = (int)(end - content);
+                        if (len > 128) {
+                            len = 128;
+                        }
+                        if((dp->content = malloc(len + 1))){
+                            strncpy(dp->content, content, len);
+                            dp->content[len] = '\0';
+                        }
+                    }
+                }
+            }
+
         }
         qput(tmp, dp);
         webpage_delete(page);
     }
- 
+
     while((dp = qget(tmp)))
         qput(ranked_docs, dp);
     qclose(tmp);
@@ -434,4 +508,56 @@ static bool token_searchfn(void *elementp, const void *key){
 static bool doc_searchfn(void *elementp, const void *id){
     rankedDoc_t *dp = (rankedDoc_t*)elementp;
     return dp->id == *((int*)id);
+}
+
+static int comparator(const void *a, const void *b) {
+    const rankedDoc_t *doc_a = *(const rankedDoc_t**)a;
+    const rankedDoc_t  *doc_b = *(const rankedDoc_t**)b;
+    if (doc_a->word_count < doc_b->word_count) {
+        return 1;
+    } else if (doc_a->word_count > doc_b->word_count) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
+static void sort_queue(queue_t **qp){
+    queue_t **tmp = NULL;
+    int count = 0;
+
+    // loop through the queue, adding each document to the array
+    rankedDoc_t *doc;
+    while ((doc = (rankedDoc_t*)qget(qp)) != NULL) {
+        // resize the array to hold another element
+        count++;
+        tmp = realloc(tmp, count * sizeof(rankedDoc_t*));
+
+        // add the document to the end of the array
+        tmp[count - 1] = doc;
+    }
+
+    // sort the array based on the rank
+    qsort(tmp, count, sizeof(rankedDoc_t*), comparator);
+
+    // add the sorted documents back to the queue
+    for (int i = 0; i < count; i++) {
+        qput(qp, tmp[i]);
+    }
+
+    free(tmp);
+}
+
+static void free_doc(rankedDoc_t *dp){
+    if(dp->title) free(dp->title);
+    if(dp->url) free(dp->url);
+    if(dp->content) free(dp->content);
+    if(dp) free(dp);
+}
+
+static void free_queue(queue_t *qp){
+    rankedDoc_t *dp;
+    while((dp=qget(qp)))
+        free_doc(dp);
+    qclose(qp);
 }
