@@ -184,7 +184,6 @@ int main(int argc, char *argv[]){
             query[0] = '\0';
             continue;
         }
-        ranked_docs = qopen();
 
         /* process tokens in Backus-Naur Form */
         for(int i = 0; i < num_tokens; i++){
@@ -244,6 +243,7 @@ int main(int argc, char *argv[]){
     }
 
     /* free memory */
+    free(stack);
     free_entries(index);
     hclose(index);
     free(pagedir); free(index_file);
@@ -397,7 +397,6 @@ static queue_t* get_union(queue_t *qp1, queue_t *qp2){
     while((dp = qget(tmp)))
         qput(qp2, dp);
     qclose(tmp);
-
     return qp1;
 }
 
