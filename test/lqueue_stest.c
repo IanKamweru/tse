@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include "lqueue.h"
-#include "queue.h"
+#include <lqueue.h>
+
 
 typedef struct person{
     char name[10];

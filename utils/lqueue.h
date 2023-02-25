@@ -1,10 +1,9 @@
 #pragma once
 /* 
- * queue.h -- public interface to the queue module
+ * lqueue.h -- public interface to the locked queue module
  */
 #include <stdint.h>
 #include <stdbool.h>
-#include "queue.h"
 
 /* the queue representation is hidden from users of the module */
 typedef void queue_t;		
