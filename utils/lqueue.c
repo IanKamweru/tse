@@ -11,8 +11,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include "lqueue.h"
 #include "queue.h"
 #include <pthread.h>
+
 
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 

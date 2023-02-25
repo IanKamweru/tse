@@ -5,6 +5,8 @@ indexer
 query
 pageio_test
 indexio_test
+lqueue_stest
+lqueue_dtest
 test_indexcp
 
 # save files
