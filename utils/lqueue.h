@@ -20,7 +20,7 @@ void lqclose(lqueue_t *qp);
 int32_t lqput(lqueue_t *qp, void *elementp); 
 
 /* get the first first element from queue, removing it from the queue */
-void* qget(lqueue_t *qp);
+void* lqget(lqueue_t *qp);
 
 /* apply a function to every element of the queue */
 void lqapply(lqueue_t *qp, void (*fn)(void* elementp));
@@ -34,6 +34,6 @@ void lqapply(lqueue_t *qp, void (*fn)(void* elementp));
  *          -- returns TRUE or FALSE as defined in bool.h
  * returns a pointer to an element, or NULL if not found
  */
-void* qsearch(lqueue_t *qp, 
+void* lqsearch(lqueue_t *qp, 
 							bool (*searchfn)(void* elementp,const void* keyp),
 							const void* skeyp);
