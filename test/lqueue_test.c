@@ -69,6 +69,7 @@ static void test_threads(int num_threads){
     for (int i = 0; i < num_threads; i++) {
         pthread_join(threads[i], NULL);
     }
+
     printf("All threads complete\n");
 
     // print the remaining elements in the queue
@@ -79,7 +80,7 @@ static void test_threads(int num_threads){
     lqclose(lqueue);
 }
 
-int main() {
+int main(void) {
     // test single thread
     printf("Testing single thread...\n\n");
     test_threads(1);
@@ -88,5 +89,5 @@ int main() {
     printf("Testing multiple threads...\n\n");
     test_threads(4);
 
-    return 0;
+    exit(EXIT_SUCCESS);
 }
