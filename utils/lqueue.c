@@ -74,21 +74,3 @@ void* lqsearch(lqueue_t *lqueue, bool (*searchfn)(void* element,const void* keyp
     pthread_mutex_unlock(&mutex); // Unlock the mutex
     return data;
 }
-
-/* search a locked queue using a supplied boolean function (as in qsearch),
- * removes the element from the queue and returns a pointer to it or
- * NULL if not found
- */
-void* lqremove(lqueue_t *lqueue, bool (*searchfn)(void* element,const void* keyp),const void* skeyp) {
-    pthread_mutex_lock(&mutex); // Lock the mutex
-    void* data = qremove((queue_t*)lqueue, searchfn, skeyp);
-    pthread_mutex_unlock(&mutex); // Unlock the mutex
-    return data;
-}
-
-/* concatenate q2 onto q1, q2 is deallocated upon completion */
-void lqconcat(lqueue_t *q1p, lqueue_t *q2p) {
-    pthread_mutex_lock(&mutex); // Lock the mutex
-    qconcat((queue_t*)q1p, (queue_t*)q2p);
-    pthread_mutex_unlock(&mutex); // unlock the mutex
-}

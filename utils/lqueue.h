@@ -37,17 +37,3 @@ void lqapply(lqueue_t *qp, void (*fn)(void* elementp));
 void* qsearch(lqueue_t *qp, 
 							bool (*searchfn)(void* elementp,const void* keyp),
 							const void* skeyp);
-
-/* search a queue using a supplied boolean function (as in qsearch),
- * removes the element from the queue and returns a pointer to it or
- * NULL if not found
- */
-void* qremove(lqueue_t *qp,
-							bool (*searchfn)(void* elementp,const void* keyp),
-							const void* skeyp);
-
-/* concatenatenates elements of q2 into q1
- * q2 is dealocated, closed, and unusable upon completion 
- */
-void qconcat(lqueue_t *q1p, lqueue_t *q2p);
-
