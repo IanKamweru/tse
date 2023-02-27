@@ -17,16 +17,16 @@
 
 
 
-pthread_mutex_t m; //creating a mutext
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;//creating a mutext
 
 /*lhopen - opens a locked hashtable
  * return a locked hashtable
 */
-hashtable_t* lhopen(uint32_t lhsize){
+lhash_t* lhopen(uint32_t lhsize){
     if (lhsize <= 0)
         return NULL;
     pthread_mutex_lock(&m);
-    lhash_t* lhtp = hopen(lhsize);
+    lhash_t* lhtp = (lhash_t*)hopen(lhsize);
     pthread_mutex_unlock(&m);
     
     if (!lhtp)
@@ -55,7 +55,7 @@ void lhapply(lhash_t* lhtp, void(*fn)(void *ep)){
         return;
     }
     pthread_mutex_lock(&m);
-    happly(lhtp, fn);
+    happly((hashtable_t*)lhtp, fn);
     pthread_mutex_unlock(&m);
 }
 
@@ -73,7 +73,7 @@ void* lhsearch(lhash_t *lhtp, bool(*searchfn)(void *ep, const void *searchkeyp),
         return NULL;
     }
     pthread_mutex_lock(&m);
-    void* entry = hsearch(lhtp, searchfn, key, keylen);
+    void* entry = hsearch((hashtable_t*)lhtp, searchfn, key, keylen);
     pthread_mutex_unlock(&m);
     
     if (!entry){
@@ -89,8 +89,9 @@ void lhclose(lhash_t* lhtp){
         return;
     }
     pthread_mutex_lock(&m);
-    hclose(lhtp);
+    hclose((hashtable_t*)lhtp);
     pthread_mutex_unlock(&m);
+    pthread_mutex_destroy(&m);
 }
 
 void* lhremove(lhash_t *lhtp, bool(*searchfn)(void *ep, const void *searchkeyp), 
@@ -100,7 +101,7 @@ void* lhremove(lhash_t *lhtp, bool(*searchfn)(void *ep, const void *searchkeyp),
         return NULL;
     }
     pthread_mutex_lock(&m);
-    void* data = hremove(lhtp, searchfn, key, keylen);
+    void* data = hremove((hashtable_t*)lhtp, searchfn, key, keylen);
     pthread_mutex_unlock(&m);
     return data;
 }
