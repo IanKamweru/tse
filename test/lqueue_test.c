@@ -1,3 +1,12 @@
+/* 
+ * lqueue_test.c -- tests the locked queue module 
+ *
+ * Author: Ian Kamweru, Abdibaset, Nathaniel Mensah
+ * Version: 1.0
+ * 
+ * Description: tests for single and multithreading using a locked queue
+ * 
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,9 +25,9 @@ static bool compare_int(void *ep, const void *keyp){
     return *((int*)ep) == *((int*)keyp);
 }
 
-static void* thread_function(void* arg) {
+static void* thread_function(void *qp) {
     static int thread_counter = 1;
-    lqueue_t* lqueue = (lqueue_t*)arg;
+    lqueue_t* lqueue = (lqueue_t*)qp;
     int thread_id = thread_counter++;
 
     printf("Thread %d starting...\n", thread_id);

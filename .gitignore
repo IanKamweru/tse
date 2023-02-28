@@ -7,6 +7,7 @@ pageio_test
 indexio_test
 test_indexcp
 lqueue_test
+lhash_test
 
 # save files
 *~
