@@ -46,3 +46,6 @@ void *lhremove(lhash_t *lhtp,
 	      const char *key, 
 	      int32_t keylen);
 
+
+void* lhremove(lhash_t *lhtp, bool(*searchfn)(void *ep, const void *searchkeyp), 
+                const char *key, int keylen);
