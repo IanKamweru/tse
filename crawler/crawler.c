@@ -32,8 +32,8 @@ int max_depth, pages_added=1, pages_retrieved=0, id=1;
 pthread_mutex_t crawl_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 int main(int argc, char *argv[]){
-    if (argc != 4) {
-        printf("Usage: crawler <seedurl> <pagedir> <maxdepth>\n");
+    if (argc != 5) {
+        printf("Usage: crawler <seedurl> <pagedir> <maxdepth> <num_threads>\n");
         exit(EXIT_FAILURE);
     }
 
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]){
         printf("Error: Max_depth must be 0 or greater.\n");
         exit(EXIT_FAILURE);
     }
-    int num_threads= 3;
+    int num_threads= atoi(argv[4]);
 
     /*************************** SAVE SEED PAGE ***************************/
     /* check save directory */
